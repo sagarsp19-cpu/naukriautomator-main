@@ -26,7 +26,7 @@ pipeline {
         stage('Build Frontend') {
             steps {
                 dir('frontend') {
-                    bat 'npm install'
+                    bat 'npm install --legacy-peer-deps'
                     bat 'npm run build'
                 }
             }
