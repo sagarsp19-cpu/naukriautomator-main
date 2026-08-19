@@ -5,6 +5,7 @@ pipeline {
         jdk 'JDK21'
         maven 'Maven3.9'
         nodejs 'Node20'
+        sonarQube 'SonarScanner'
     }
 
     stages {
