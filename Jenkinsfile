@@ -39,6 +39,20 @@ pipeline {
         }
     }
 
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonarqube-connection') {
+                    bat '''
+                        sonar-scanner ^
+                        -Dsonar.projectKey=naukriautomator ^
+                        -Dsonar.projectName=naukriautomator ^
+                        -Dsonar.sources=backend/src/main,frontend/src ^
+                        -Dsonar.java.binaries=backend/target/classes
+                    '''
+                }
+            }
+        }
+
     post {
         success {
             echo 'Build completed successfully.'
