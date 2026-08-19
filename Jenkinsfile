@@ -7,6 +7,10 @@ pipeline {
         nodejs 'Node20'
     }
 
+    environment {
+        DOCKER_HOME = 'C:\\Program Files\\Docker\\Docker\\resources\\bin'
+    }
+
     stages {
 
         stage('Checkout') {
@@ -57,23 +61,63 @@ pipeline {
             }
         }
 
+        stage('Verify Docker') {
+            steps {
+                bat """
+                    echo ==============================
+                    echo Checking Docker Installation
+                    echo ==============================
+
+                    "${DOCKER_HOME}\\docker.exe" --version
+
+                    echo.
+                    echo ==============================
+                    echo Checking Docker Engine
+                    echo ==============================
+
+                    "${DOCKER_HOME}\\docker.exe" info
+                """
+            }
+        }
+
         stage('Docker Build') {
             steps {
-                bat '''
-                    docker build -t naukriautomator-backend:%BUILD_NUMBER% ./backend
-                    docker build -t naukriautomator-frontend:%BUILD_NUMBER% ./frontend
-                '''
+                bat """
+                    echo ==============================
+                    echo Building Backend Docker Image
+                    echo ==============================
+
+                    "${DOCKER_HOME}\\docker.exe" build ^
+                    -t naukriautomator-backend:%BUILD_NUMBER% ^
+                    ./backend
+
+                    echo.
+                    echo ==============================
+                    echo Building Frontend Docker Image
+                    echo ==============================
+
+                    "${DOCKER_HOME}\\docker.exe" build ^
+                    -t naukriautomator-frontend:%BUILD_NUMBER% ^
+                    ./frontend
+
+                    echo.
+                    echo ==============================
+                    echo Docker Images Created
+                    echo ==============================
+
+                    "${DOCKER_HOME}\\docker.exe" images
+                """
             }
         }
     }
 
     post {
         success {
-            echo 'Build completed successfully.'
+            echo 'CI/CD pipeline completed successfully.'
         }
 
         failure {
-            echo 'Build failed.'
+            echo 'CI/CD pipeline failed.'
         }
     }
 }
