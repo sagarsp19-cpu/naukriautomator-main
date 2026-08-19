@@ -64,16 +64,9 @@ pipeline {
         stage('Verify Docker') {
             steps {
                 bat """
-                    echo ==============================
-                    echo Checking Docker Installation
-                    echo ==============================
+                    echo Checking Docker...
 
                     "${DOCKER_HOME}\\docker.exe" --version
-
-                    echo.
-                    echo ==============================
-                    echo Checking Docker Engine
-                    echo ==============================
 
                     "${DOCKER_HOME}\\docker.exe" info
                 """
@@ -83,30 +76,64 @@ pipeline {
         stage('Docker Build') {
             steps {
                 bat """
-                    echo ==============================
-                    echo Building Backend Docker Image
-                    echo ==============================
+                    echo Building Backend Docker Image...
 
                     "${DOCKER_HOME}\\docker.exe" build ^
                     -t naukriautomator-backend:%BUILD_NUMBER% ^
                     ./backend
 
-                    echo.
-                    echo ==============================
-                    echo Building Frontend Docker Image
-                    echo ==============================
+                    echo Building Frontend Docker Image...
 
                     "${DOCKER_HOME}\\docker.exe" build ^
                     -t naukriautomator-frontend:%BUILD_NUMBER% ^
                     ./frontend
 
-                    echo.
-                    echo ==============================
-                    echo Docker Images Created
-                    echo ==============================
+                    echo Docker Images Created:
 
                     "${DOCKER_HOME}\\docker.exe" images
                 """
+            }
+        }
+
+        stage('Push Images to Docker Hub') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    bat """
+                        echo Logging into Docker Hub...
+
+                        echo %DOCKER_PASSWORD% | "${DOCKER_HOME}\\docker.exe" login -u "%DOCKER_USERNAME%" --password-stdin
+
+                        echo Tagging Backend...
+
+                        "${DOCKER_HOME}\\docker.exe" tag ^
+                        naukriautomator-backend:%BUILD_NUMBER% ^
+                        %DOCKER_USERNAME%/naukriautomator-backend:%BUILD_NUMBER%
+
+                        echo Tagging Frontend...
+
+                        "${DOCKER_HOME}\\docker.exe" tag ^
+                        naukriautomator-frontend:%BUILD_NUMBER% ^
+                        %DOCKER_USERNAME%/naukriautomator-frontend:%BUILD_NUMBER%
+
+                        echo Pushing Backend...
+
+                        "${DOCKER_HOME}\\docker.exe" push ^
+                        %DOCKER_USERNAME%/naukriautomator-backend:%BUILD_NUMBER%
+
+                        echo Pushing Frontend...
+
+                        "${DOCKER_HOME}\\docker.exe" push ^
+                        %DOCKER_USERNAME%/naukriautomator-frontend:%BUILD_NUMBER%
+
+                        echo Docker Hub Push Completed Successfully.
+                    """
+                }
             }
         }
     }
