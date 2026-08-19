@@ -32,13 +32,6 @@ pipeline {
             }
         }
 
-        stage('Archive Backend') {
-            steps {
-                archiveArtifacts artifacts: 'backend/target/*.jar', fingerprint: true
-            }
-        }
-    }
-
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('sonarqube-connection') {
@@ -53,10 +46,19 @@ pipeline {
             }
         }
 
+        stage('Archive Backend') {
+            steps {
+                archiveArtifacts artifacts: 'backend/target/*.jar',
+                    fingerprint: true
+            }
+        }
+    }
+
     post {
         success {
             echo 'Build completed successfully.'
         }
+
         failure {
             echo 'Build failed.'
         }
