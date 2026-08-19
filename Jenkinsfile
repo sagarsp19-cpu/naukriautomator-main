@@ -53,7 +53,7 @@ pipeline {
         stage('OWASP Dependency-Check') {
             steps {
                 script {
-                    def dependencyCheckHome = tool 'DependencyCheck'
+                    def dependencyCheckHome = tool 'Dependency-Check'
 
                     bat """
                         "${dependencyCheckHome}\\bin\\dependency-check.bat" ^
