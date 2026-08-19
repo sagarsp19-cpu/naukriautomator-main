@@ -50,9 +50,28 @@ pipeline {
             }
         }
 
+        stage('OWASP Dependency-Check') {
+            steps {
+                script {
+                    def dependencyCheckHome = tool 'OWASP-Dependency-Check'
+
+                    bat """
+                        "${dependencyCheckHome}\\bin\\dependency-check.bat" ^
+                        --project "NaukriAutomator" ^
+                        --scan "${WORKSPACE}\\backend" ^
+                        --format "HTML" ^
+                        --out "${WORKSPACE}\\dependency-check-report"
+                    """
+                }
+            }
+        }
+
         stage('Archive Backend') {
             steps {
                 archiveArtifacts artifacts: 'backend/target/*.jar',
+                    fingerprint: true
+
+                archiveArtifacts artifacts: 'dependency-check-report/dependency-check-report.html',
                     fingerprint: true
             }
         }
