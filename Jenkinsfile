@@ -7,15 +7,30 @@ pipeline {
         nodejs 'Node20'
     }
 
-    environment {
-        DOCKER_HOME = 'C:\\Program Files\\Docker\\Docker\\resources\\bin'
-    }
-
     stages {
 
         stage('Checkout') {
             steps {
                 checkout scm
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    def scannerHome = tool 'SonarScanner'
+
+                    withSonarQubeEnv('sonarqube-connection') {
+                        bat """
+                            "${scannerHome}\\bin\\sonar-scanner.bat" ^
+                            -Dsonar.projectKey=naukriautomator ^
+                            -Dsonar.projectName=naukriautomator ^
+                            -Dsonar.sources=backend/src/main,frontend/src ^
+                            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/target/**,**/*.min.js ^
+                            -Dsonar.javascript.node.maxspace=4096
+                        """
+                    }
+                }
             }
         }
 
@@ -36,24 +51,6 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                script {
-                    def scannerHome = tool 'SonarScanner'
-
-                    withSonarQubeEnv('sonarqube-connection') {
-                        bat """
-                            "${scannerHome}\\bin\\sonar-scanner.bat" ^
-                            -Dsonar.projectKey=naukriautomator ^
-                            -Dsonar.projectName=naukriautomator ^
-                            -Dsonar.sources=backend/src/main,frontend/src ^
-                            -Dsonar.java.binaries=backend/target/classes
-                        """
-                    }
-                }
-            }
-        }
-
         stage('Archive Backend') {
             steps {
                 archiveArtifacts artifacts: 'backend/target/*.jar',
@@ -63,35 +60,47 @@ pipeline {
 
         stage('Verify Docker') {
             steps {
-                bat """
-                    echo Checking Docker...
+                bat '''
+                    echo ==============================
+                    echo Checking Docker
+                    echo ==============================
 
-                    "${DOCKER_HOME}\\docker.exe" --version
-
-                    "${DOCKER_HOME}\\docker.exe" info
-                """
+                    "C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe" --version
+                '''
             }
         }
 
         stage('Docker Build') {
             steps {
-                bat """
-                    echo Building Backend Docker Image...
+                bat '''
+                    echo ==============================
+                    echo Building Backend Docker Image
+                    echo ==============================
 
-                    "${DOCKER_HOME}\\docker.exe" build ^
+                    "C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe" build ^
                     -t naukriautomator-backend:%BUILD_NUMBER% ^
                     ./backend
 
-                    echo Building Frontend Docker Image...
+                    echo ==============================
+                    echo Building Frontend Docker Image
+                    echo ==============================
 
-                    "${DOCKER_HOME}\\docker.exe" build ^
+                    "C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe" build ^
                     -t naukriautomator-frontend:%BUILD_NUMBER% ^
                     ./frontend
+                '''
+            }
+        }
 
-                    echo Docker Images Created:
+        stage('Verify Docker Images') {
+            steps {
+                bat '''
+                    echo ==============================
+                    echo Docker Images Created
+                    echo ==============================
 
-                    "${DOCKER_HOME}\\docker.exe" images
-                """
+                    "C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe" images
+                '''
             }
         }
 
@@ -104,35 +113,49 @@ pipeline {
                         passwordVariable: 'DOCKER_PASSWORD'
                     )
                 ]) {
-                    bat """
-                        echo Logging into Docker Hub...
+                    bat '''
+                        echo ==============================
+                        echo Logging into Docker Hub
+                        echo ==============================
 
-                        echo %DOCKER_PASSWORD% | "${DOCKER_HOME}\\docker.exe" login -u "%DOCKER_USERNAME%" --password-stdin
+                        "C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe" login ^
+                        -u "%DOCKER_USERNAME%" ^
+                        -p "%DOCKER_PASSWORD%"
 
-                        echo Tagging Backend...
+                        echo ==============================
+                        echo Tagging Backend Image
+                        echo ==============================
 
-                        "${DOCKER_HOME}\\docker.exe" tag ^
+                        "C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe" tag ^
                         naukriautomator-backend:%BUILD_NUMBER% ^
                         %DOCKER_USERNAME%/naukriautomator-backend:%BUILD_NUMBER%
 
-                        echo Tagging Frontend...
+                        echo ==============================
+                        echo Tagging Frontend Image
+                        echo ==============================
 
-                        "${DOCKER_HOME}\\docker.exe" tag ^
+                        "C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe" tag ^
                         naukriautomator-frontend:%BUILD_NUMBER% ^
                         %DOCKER_USERNAME%/naukriautomator-frontend:%BUILD_NUMBER%
 
-                        echo Pushing Backend...
+                        echo ==============================
+                        echo Pushing Backend Image
+                        echo ==============================
 
-                        "${DOCKER_HOME}\\docker.exe" push ^
+                        "C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe" push ^
                         %DOCKER_USERNAME%/naukriautomator-backend:%BUILD_NUMBER%
 
-                        echo Pushing Frontend...
+                        echo ==============================
+                        echo Pushing Frontend Image
+                        echo ==============================
 
-                        "${DOCKER_HOME}\\docker.exe" push ^
+                        "C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe" push ^
                         %DOCKER_USERNAME%/naukriautomator-frontend:%BUILD_NUMBER%
 
-                        echo Docker Hub Push Completed Successfully.
-                    """
+                        echo ==============================
+                        echo Docker Hub Push Completed
+                        echo ==============================
+                    '''
                 }
             }
         }
@@ -145,6 +168,10 @@ pipeline {
 
         failure {
             echo 'CI/CD pipeline failed.'
+        }
+
+        always {
+            echo "Build Number: ${env.BUILD_NUMBER}"
         }
     }
 }
