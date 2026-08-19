@@ -5,7 +5,6 @@ pipeline {
         jdk 'JDK21'
         maven 'Maven3.9'
         nodejs 'Node20'
-        sonarQube 'SonarScanner'
     }
 
     stages {
@@ -35,14 +34,18 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('sonarqube-connection') {
-                    bat '''
-                        sonar-scanner ^
-                        -Dsonar.projectKey=naukriautomator ^
-                        -Dsonar.projectName=naukriautomator ^
-                        -Dsonar.sources=backend/src/main,frontend/src ^
-                        -Dsonar.java.binaries=backend/target/classes
-                    '''
+                script {
+                    def scannerHome = tool 'SonarScanner'
+
+                    withSonarQubeEnv('sonarqube-connection') {
+                        bat """
+                            "${scannerHome}\\bin\\sonar-scanner.bat" ^
+                            -Dsonar.projectKey=naukriautomator ^
+                            -Dsonar.projectName=naukriautomator ^
+                            -Dsonar.sources=backend/src/main,frontend/src ^
+                            -Dsonar.java.binaries=backend/target/classes
+                        """
+                    }
                 }
             }
         }
