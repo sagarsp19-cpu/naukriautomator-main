@@ -32,9 +32,37 @@ pipeline {
             }
         }
 
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    def scannerHome = tool 'SonarScanner'
+
+                    withSonarQubeEnv('sonarqube-connection') {
+                        bat """
+                            "${scannerHome}\\bin\\sonar-scanner.bat" ^
+                            -Dsonar.projectKey=naukriautomator ^
+                            -Dsonar.projectName=naukriautomator ^
+                            -Dsonar.sources=backend/src/main,frontend/src ^
+                            -Dsonar.java.binaries=backend/target/classes
+                        """
+                    }
+                }
+            }
+        }
+
         stage('Archive Backend') {
             steps {
-                archiveArtifacts artifacts: 'backend/target/*.jar', fingerprint: true
+                archiveArtifacts artifacts: 'backend/target/*.jar',
+                    fingerprint: true
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                bat '''
+                    docker build -t naukriautomator-backend:%BUILD_NUMBER% ./backend
+                    docker build -t naukriautomator-frontend:%BUILD_NUMBER% ./frontend
+                '''
             }
         }
     }
@@ -43,6 +71,7 @@ pipeline {
         success {
             echo 'Build completed successfully.'
         }
+
         failure {
             echo 'Build failed.'
         }
